@@ -116,6 +116,12 @@ class SimpleObjectHydrator extends AbstractHydrator
                 $type  = Type::getType($cache[$column]['class']->fieldMappings[$cache[$column]['name']]['type']);
                 $value = $type->convertToPHPValue($value, $this->_platform);
             }
+            
+            // Convert field to a valid PHP value
+            if (isset($cache[$column]['type'])) {
+                $type  = Type::getType($cache[$column]['type']);
+                $value = $type->convertToPHPValue($value, $this->_platform);
+            }
 
             // Prevent overwrite in case of inherit classes using same property name (See AbstractHydrator)
             if (isset($cache[$column]) && ( ! isset($data[$cache[$column]['name']]) || $value !== null)) {
@@ -160,6 +166,22 @@ class SimpleObjectHydrator extends AbstractHydrator
                     'field' => true,
                 );
 
+            case (isset($this->_rsm->metaMappings[$column])):
+                $class = isset($this->declaringClasses[$column])
+                    ? $this->declaringClasses[$column]
+                    : $this->class;
+
+                // If class is not part of the inheritance, ignore
+                if ( ! ($class->name === $entityName || is_subclass_of($entityName, $class->name))) {
+                    return null;
+                }
+
+                return array(
+                    'class' => $class,
+                    'name' => $this->_rsm->metaMappings[$column],
+                    'type'  => $class->getTypeOfColumn($this->_rsm->metaMappings[$column], $this->_em),
+                );
+
             case (isset($this->_rsm->relationMap[$column])):
                 $class = isset($this->_rsm->relationMap[$column])
                     ? $this->_rsm->relationMap[$column]
@@ -173,7 +195,7 @@ class SimpleObjectHydrator extends AbstractHydrator
                 // TODO: Decide what to do with associations. It seems original code is incomplete.
                 // One solution is to load the association, but it might require extra efforts.
                 return array('name' => $column);
-
+                
             default:
                 return array(
                     'name' => $this->_rsm->metaMappings[$column]

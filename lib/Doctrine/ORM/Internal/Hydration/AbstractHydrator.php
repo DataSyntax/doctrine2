@@ -221,7 +221,7 @@ abstract class AbstractHydrator
                         // Meta column (has meaning in relational schema only, i.e. foreign keys or discriminator columns).
                         $fieldName     = $this->_rsm->metaMappings[$key];
                         $classMetadata = $this->_em->getClassMetadata($this->_rsm->aliasMap[$this->_rsm->columnOwnerMap[$key]]);
-
+                        $cache[$key]['type'] = Type::getType($classMetadata->getTypeOfColumn($fieldName, $this->_em));
                         $cache[$key]['isMetaColumn'] = true;
                         $cache[$key]['fieldName']    = $fieldName;
                         $cache[$key]['dqlAlias']     = $this->_rsm->columnOwnerMap[$key];
@@ -251,7 +251,7 @@ abstract class AbstractHydrator
 
             if (isset($cache[$key]['isMetaColumn'])) {
                 if ( ! isset($rowData[$dqlAlias][$cache[$key]['fieldName']]) && $value !== null) {
-                    $rowData[$dqlAlias][$cache[$key]['fieldName']] = $value;
+                    $rowData[$dqlAlias][$cache[$key]['fieldName']] = isset ($cache[$key]['type']) ? $cache[$key]['type']->convertToPHPValue($value, $this->_platform) : $value;
                     if ($cache[$key]['isIdentifier']) {
                         $nonemptyComponents[$dqlAlias] = true;
                     }

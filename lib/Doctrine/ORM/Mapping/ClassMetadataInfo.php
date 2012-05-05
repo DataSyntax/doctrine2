@@ -405,6 +405,20 @@ class ClassMetadataInfo implements ClassMetadata
     public $associationMappings = array();
 
     /**
+     * An array of quoted columns used as source in assoc mappings
+     * 
+     * @var array
+     */
+    public $quotedSourceColumns = array();
+
+    /**
+     * An array of qouted columns used as dest in assoc mappings
+     * 
+     * @var array
+     */
+    public $quotedTargetColumns = array();
+
+    /**
      * READ-ONLY: Flag indicating whether the identifier/primary key of the class is composite.
      *
      * @var boolean
@@ -1036,6 +1050,7 @@ class ClassMetadataInfo implements ClassMetadata
             if ($mapping['columnName'][0] == '`') {
                 $mapping['columnName'] = trim($mapping['columnName'], '`');
                 $mapping['quoted'] = true;
+                $this->quotedSourceColumns[$mapping['columnName']] = true;
             }
         }
 
@@ -1194,6 +1209,17 @@ class ClassMetadataInfo implements ClassMetadata
 
         if (isset($mapping['joinColumns']) && $mapping['joinColumns']) {
             $mapping['isOwningSide'] = true;
+            foreach ($mapping['joinColumns'] as &$joinColumns)
+            {
+                if ($joinColumns['name'][0] == '`') {
+                    $joinColumns['name'] = trim($joinColumns['name'], '`');
+                    $this->quotedSourceColumns[$joinColumns['name']] = true;
+                }
+                if ($joinColumns['referencedColumnName'][0] == '`') {
+                    $joinColumns['referencedColumnName'] = trim($joinColumns['referencedColumnName'], '`');
+                    $this->quotedTargetColumns[$joinColumns['referencedColumnName']] = true;
+                }
+            }
         }
 
         if ($mapping['isOwningSide']) {
@@ -1580,9 +1606,27 @@ class ClassMetadataInfo implements ClassMetadata
      *
      * @return \Doctrine\DBAL\Types\Type
      */
-    public function getTypeOfColumn($columnName)
+    public function getTypeOfColumn($columnName, $em = null)
     {
-        return $this->getTypeOfField($this->getFieldName($columnName));
+
+        if( isset($this->fieldNames[$columnName]) || !$em) {
+            //if we have the column in field mappings getting type is straightforward
+            $fieldName = $this->fieldNames[$columnName];
+            return isset($this->fieldMappings[$fieldName]) ?
+                $this->fieldMappings[$fieldName]['type'] : null;
+        } else {
+            //else getting field type gets a little complicated
+            foreach($this->associationMappings as $assoc) {
+                foreach ($assoc['joinColumns'] as $joinColumn) {
+                    if($joinColumn['name'] == $columnName) {
+                        $targetEntity = $em->getClassMetadata($assoc['targetEntity']);
+                        $targetField = $targetEntity->fieldNames[$joinColumn['referencedColumnName']];
+                        return isset($targetField) ?
+                            $targetEntity->fieldMappings[$targetField]['type'] : null;
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -2295,6 +2339,22 @@ class ClassMetadataInfo implements ClassMetadata
         return isset($this->fieldMappings[$field]['quoted'])
             ? $platform->quoteIdentifier($this->fieldMappings[$field]['columnName'])
             : $this->fieldMappings[$field]['columnName'];
+    }
+
+    /**
+     *  Gets the (possibly quoted) column name by checking the quotedSourceColumns and quotedTargetColumns
+     *  arrays.
+     * 
+     * @param string $column
+     * @param AbstractPlatform $platform
+     */
+    public function getQuotedColumnByName($column, $platform)
+    {
+        if (isset($this->quotedSourceColumns[$column]))
+            return $platform->quoteIdentifier($column);
+        if (isset($this->quotedTargetColumns[$column]))
+            return $platform->quoteIdentifier($column);
+        return $column;
     }
 
     /**

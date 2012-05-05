@@ -458,7 +458,7 @@ class JoinedSubclassPersister extends AbstractEntityInheritancePersister
                 $assoc = $this->_class->associationMappings[$name];
                 if ($assoc['type'] & ClassMetadata::TO_ONE && $assoc['isOwningSide']) {
                     foreach ($assoc['targetToSourceKeyColumns'] as $sourceCol) {
-                        $columns[] = $sourceCol;
+                        $columns[] = $this->_class->getQuotedColumnByName($sourceCol, $this->_platform);
                     }
                 }
             } else if ($this->_class->name != $this->_class->rootEntityName ||

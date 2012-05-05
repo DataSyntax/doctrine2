@@ -576,7 +576,7 @@ class SqlWalker implements TreeWalker
                     $sql .= $this->getSQLTableAlias($class->getTableName(), $dqlAlias) . '.';
                 }
 
-                $sql .= reset($assoc['targetToSourceKeyColumns']);
+                $sql .= $class->getQuotedColumnByName(reset($assoc['targetToSourceKeyColumns']), $this->_platform);
                 break;
 
             default:
@@ -655,8 +655,8 @@ class SqlWalker implements TreeWalker
 
                 foreach ($assoc['targetToSourceKeyColumns'] as $srcColumn) {
                     $columnAlias = $this->getSQLColumnAlias($srcColumn);
-
-                    $sqlSelectExpressions[] = $sqlTableAlias . '.' . $srcColumn . ' AS ' . $columnAlias;
+                    $srcColumnQuoted = $class->getQuotedColumnByName($srcColumn, $this->_platform);
+                    $sqlSelectExpressions[] = $sqlTableAlias . '.' . $srcColumnQuoted . ' AS ' . $columnAlias;
 
                     $this->_rsm->addMetaResult($dqlAlias, $columnAlias, $srcColumn, (isset($assoc['id']) && $assoc['id'] === true));
                 }
@@ -680,8 +680,8 @@ class SqlWalker implements TreeWalker
 
                     foreach ($assoc['targetToSourceKeyColumns'] as $srcColumn) {
                         $columnAlias = $this->getSQLColumnAlias($srcColumn);
-
-                        $sqlSelectExpressions[] = $sqlTableAlias . '.' . $srcColumn . ' AS ' . $columnAlias;
+                        $srcColumnQuoted = $class->getQuotedColumnByName($srcColumn, $this->_platform);
+                        $sqlSelectExpressions[] = $sqlTableAlias . '.' . $srcColumnQuoted . ' AS ' . $columnAlias;
 
                         $this->_rsm->addMetaResult($dqlAlias, $columnAlias, $srcColumn);
                     }
@@ -860,19 +860,23 @@ class SqlWalker implements TreeWalker
                 if ( ! $first) $sql .= ' AND '; else $first = false;
 
                 if ($relation['isOwningSide']) {
+                    $sourceColumnQuoted = $sourceClass->getQuotedColumnByName($sourceColumn, $this->_platform);
                     if ($targetClass->containsForeignIdentifier && !isset($targetClass->fieldNames[$targetColumn])) {
-                        $quotedTargetColumn = $targetColumn; // Join columns cannot be quoted.
+                        $quotedTargetColumn = $targetClass->getQuotedColumnByName($targetColumn, $this->_platform);
+                        //$quotedTargetColumn = $targetColumn; // Join columns cannot be quoted. (I disagree :)
                     } else {
                         $quotedTargetColumn = $targetClass->getQuotedColumnName($targetClass->fieldNames[$targetColumn], $this->_platform);
                     }
-                    $sql .= $sourceTableAlias . '.' . $sourceColumn . ' = ' . $targetTableAlias . '.' . $quotedTargetColumn;
+                    $sql .= $sourceTableAlias . '.' . $sourceColumnQuoted . ' = ' . $targetTableAlias . '.' . $quotedTargetColumn;
                 } else {
+                    $sourceColumnQuoted = $targetClass->getQuotedColumnByName($sourceColumn, $this->_platform);
                     if ($sourceClass->containsForeignIdentifier && !isset($sourceClass->fieldNames[$targetColumn])) {
-                        $quotedTargetColumn = $targetColumn; // Join columns cannot be quoted.
+                        $quotedTargetColumn = $sourceClass->getQuotedColumnByName($targetColumn, $this->_platform);
+                        //$quotedTargetColumn = $targetColumn; // Join columns cannot be quoted. (I disagree :)
                     } else {
                         $quotedTargetColumn = $sourceClass->getQuotedColumnName($sourceClass->fieldNames[$targetColumn], $this->_platform);
                     }
-                    $sql .= $sourceTableAlias . '.' . $quotedTargetColumn . ' = ' . $targetTableAlias . '.' . $sourceColumn;
+                    $sql .= $sourceTableAlias . '.' . $quotedTargetColumn . ' = ' . $targetTableAlias . '.' . $sourceColumnQuoted;
                 }
             }
 
@@ -886,9 +890,9 @@ class SqlWalker implements TreeWalker
             if ($relation['isOwningSide']) {
                 foreach ($assoc['relationToSourceKeyColumns'] as $relationColumn => $sourceColumn) {
                     if ( ! $first) $sql .= ' AND '; else $first = false;
-
                     if ($sourceClass->containsForeignIdentifier && !isset($sourceClass->fieldNames[$sourceColumn])) {
-                        $quotedTargetColumn = $sourceColumn; // Join columns cannot be quoted.
+                        $quotedTargetColumn = $sourceClass->getQuotedColumnByName($sourceColumn, $this->_platform);
+                        //$quotedTargetColumn = $sourceColumn; // Join columns cannot be quoted. //Don't agree
                     } else {
                         $quotedTargetColumn = $sourceClass->getQuotedColumnName($sourceClass->fieldNames[$sourceColumn], $this->_platform);
                     }
@@ -900,7 +904,8 @@ class SqlWalker implements TreeWalker
                     if ( ! $first) $sql .= ' AND '; else $first = false;
 
                     if ($sourceClass->containsForeignIdentifier && !isset($sourceClass->fieldNames[$targetColumn])) {
-                        $quotedTargetColumn = $targetColumn; // Join columns cannot be quoted.
+                        $quotedTargetColumn = $sourceClass->getQuotedColumnByName($targetColumn, $this->_platform);
+                        //$quotedTargetColumn = $targetColumn; // Join columns cannot be quoted. //Don't agree
                     } else {
                         $quotedTargetColumn = $sourceClass->getQuotedColumnName($sourceClass->fieldNames[$targetColumn], $this->_platform);
                     }
@@ -919,7 +924,8 @@ class SqlWalker implements TreeWalker
                     if ( ! $first) $sql .= ' AND '; else $first = false;
 
                     if ($targetClass->containsForeignIdentifier && !isset($targetClass->fieldNames[$targetColumn])) {
-                        $quotedTargetColumn = $targetColumn; // Join columns cannot be quoted.
+                        $quotedTargetColumn = $targetClass->getQuotedColumnByName($targetColumn, $this->_platform);
+                        //$quotedTargetColumn = $targetColumn; // Join columns cannot be quoted. //Don't agree
                     } else {
                         $quotedTargetColumn = $targetClass->getQuotedColumnName($targetClass->fieldNames[$targetColumn], $this->_platform);
                     }
@@ -931,7 +937,8 @@ class SqlWalker implements TreeWalker
                     if ( ! $first) $sql .= ' AND '; else $first = false;
 
                     if ($targetClass->containsForeignIdentifier && !isset($targetClass->fieldNames[$sourceColumn])) {
-                        $quotedTargetColumn = $sourceColumn; // Join columns cannot be quoted.
+                        $quotedTargetColumn = $targetClass->getQuotedColumnByName($sourceColumn, $this->platform);
+                        //$quotedTargetColumn = $sourceColumn; // Join columns cannot be quoted. //Don't agree
                     } else {
                         $quotedTargetColumn = $targetClass->getQuotedColumnName($targetClass->fieldNames[$sourceColumn], $this->_platform);
                     }

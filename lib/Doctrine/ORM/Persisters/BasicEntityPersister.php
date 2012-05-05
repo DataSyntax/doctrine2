@@ -349,6 +349,8 @@ class BasicEntityPersister
                     $type = Type::getType($this->_columnTypes[$columnName]);
                     $placeholder = $type->convertToDatabaseValueSQL('?', $this->_platform);
                 }
+            } else {
+                $column = $this->_class->getQuotedColumnByName($column, $this->_platform);
             }
 
             $set[] = $column . ' = ' . $placeholder;
@@ -362,7 +364,8 @@ class BasicEntityPersister
         foreach ($this->_class->identifier as $idField) {
             if (isset($this->_class->associationMappings[$idField])) {
                 $targetMapping = $this->_em->getClassMetadata($this->_class->associationMappings[$idField]['targetEntity']);
-                $where[] = $this->_class->associationMappings[$idField]['joinColumns'][0]['name'];
+                $columnName = $this->_class->associationMappings[$idField]['joinColumns'][0]['name'];
+                $where[] = $this->_class->getQuotedColumnByName($columnName, $this->_platform);
                 $params[] = $id[$idField];
 
                 switch (true) {
@@ -471,8 +474,15 @@ class BasicEntityPersister
     {
         $identifier = $this->_em->getUnitOfWork()->getEntityIdentifier($entity);
         $this->deleteJoinTableRecords($identifier);
+        
+        $identifierColumns = $this->_class->getIdentifierColumnNames();
+        $identifierColumnsQuoted = array();
+        foreach($identifierColumns as $column)
+        {
+            $identifierColumnsQuoted[] = $this->_class->getQuotedColumnByName($column, $this->_platform);
+        }
 
-        $id = array_combine($this->_class->getIdentifierColumnNames(), $identifier);
+        $id = array_combine($identifierColumnsQuoted, $identifier);
         $this->_conn->delete($this->_class->getQuotedTableName($this->_platform), $id);
     }
 
@@ -676,7 +686,7 @@ class BasicEntityPersister
                         $sourceClass->name, $sourceKeyColumn
                     );
                 }
-
+                $targetKeyColumn = $targetClass->getQuotedColumnByName($targetKeyColumn, $this->_platform);
                 // unset the old value and set the new sql aliased value here. By definition
                 // unset($identifier[$targetKeyColumn] works here with how UnitOfWork::createEntity() calls this method.
                 $identifier[$this->_getSQLTableAlias($targetClass->name) . "." . $targetKeyColumn] =
@@ -1032,6 +1042,8 @@ class BasicEntityPersister
                         if ( ! $first) {
                             $this->_selectJoinSql .= ' AND ';
                         }
+                        $sourceCol = $this->_class->getQuotedColumnByName($sourceCol, $this->_platform);
+                        $targetCol = $this->_class->getQuotedColumnByName($targetCol, $this->_platform);
                         $this->_selectJoinSql .= $this->_getSQLTableAlias($assoc['sourceEntity']) . '.' . $sourceCol . ' = '
                                                . $tableAlias . '.' . $targetCol;
                         $first = false;
@@ -1053,7 +1065,8 @@ class BasicEntityPersister
                         if ( ! $first) {
                             $this->_selectJoinSql .= ' AND ';
                         }
-
+                        $sourceCol = $eagerEntity->getQuotedColumnByName($sourceCol, $this->_platform);
+                        $targetCol = $eagerEntity->getQuotedColumnByName($targetCol, $this->_platform);
                         $this->_selectJoinSql .= $this->_getSQLTableAlias($owningAssoc['sourceEntity'], $assocAlias) . '.' . $sourceCol . ' = '
                                                . $this->_getSQLTableAlias($owningAssoc['targetEntity']) . '.' . $targetCol;
                         $first = false;
@@ -1086,8 +1099,9 @@ class BasicEntityPersister
                 if ($columnList) $columnList .= ', ';
 
                 $resultColumnName = $this->getSQLColumnAlias($srcColumn);
+                $srcColumnQuoted = $class->getQuotedColumnByName($srcColumn, $this->_platform);
                 $columnList .= $this->_getSQLTableAlias($class->name, ($alias == 'r' ? '' : $alias) )
-                             . '.' . $srcColumn . ' AS ' . $resultColumnName;
+                             . '.' . $srcColumnQuoted . ' AS ' . $resultColumnName;
                 $this->_rsm->addMetaResult($alias, $resultColumnName, $srcColumn, isset($assoc['id']) && $assoc['id'] === true);
             }
         }
@@ -1119,7 +1133,8 @@ class BasicEntityPersister
             if ($joinSql != '') $joinSql .= ' AND ';
 
             if ($this->_class->containsForeignIdentifier && ! isset($this->_class->fieldNames[$sourceColumn])) {
-                $quotedColumn = $sourceColumn; // join columns cannot be quoted
+                $quotedColumn = $this->_class->getQuotedColumnByName($sourceColumn, $this->_platform);
+                //$quotedColumn = $sourceColumn; // join columns cannot be quoted //Oh really?
             } else {
                 $quotedColumn = $this->_class->getQuotedColumnName($this->_class->fieldNames[$sourceColumn], $this->_platform);
             }
@@ -1196,7 +1211,7 @@ class BasicEntityPersister
 
                 if ($assoc['isOwningSide'] && $assoc['type'] & ClassMetadata::TO_ONE) {
                     foreach ($assoc['targetToSourceKeyColumns'] as $sourceCol) {
-                        $columns[] = $sourceCol;
+                        $columns[] = $this->_class->getQuotedColumnByName($sourceCol, $this->_platform);
                     }
                 }
             } else if ($this->_class->generatorType != ClassMetadata::GENERATOR_TYPE_IDENTITY || $this->_class->identifier[0] != $name) {
@@ -1333,7 +1348,8 @@ class BasicEntityPersister
                     ? $this->_class->associationMappings[$field]['inherited']
                     : $this->_class->name;
 
-                $conditionSql .= $this->_getSQLTableAlias($className) . '.' . $this->_class->associationMappings[$field]['joinColumns'][0]['name'];
+                $columnName =  $this->_class->associationMappings[$field]['joinColumns'][0]['name'];
+                $conditionSql .= $this->_getSQLTableAlias($className) . '.' . $this->_class->getQuotedColumnByName($columnName, $this->_platform);
             } else if ($assoc !== null && strpos($field, " ") === false && strpos($field, "(") === false) {
                 // very careless developers could potentially open up this normally hidden api for userland attacks,
                 // therefore checking for spaces and function calls which are not allowed.
