@@ -1789,9 +1789,27 @@ class ClassMetadataInfo implements ClassMetadata
      * @param string $columnName
      * @return \Doctrine\DBAL\Types\Type
      */
-    public function getTypeOfColumn($columnName)
+    public function getTypeOfColumn($columnName, $em = null)
     {
-        return $this->getTypeOfField($this->getFieldName($columnName));
+
+        if( isset($this->fieldNames[$columnName]) || !$em) {
+            //if we have the column in field mappings getting type is straightforward
+            $fieldName = $this->fieldNames[$columnName];
+            return isset($this->fieldMappings[$fieldName]) ?
+                $this->fieldMappings[$fieldName]['type'] : null;
+        } else {
+            //else getting field type gets a little complicated
+            foreach($this->associationMappings as $assoc) {
+                foreach ($assoc['joinColumns'] as $joinColumn) {
+                    if($joinColumn['name'] == $columnName) {
+                        $targetEntity = $em->getClassMetadata($assoc['targetEntity']);
+                        $targetField = $targetEntity->fieldNames[$joinColumn['referencedColumnName']];
+                        return isset($targetField) ?
+                            $targetEntity->fieldMappings[$targetField]['type'] : null;
+                    }
+                }
+            }
+        }
     }
 
     /**
