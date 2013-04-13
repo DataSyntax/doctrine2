@@ -402,7 +402,8 @@ class BasicEntityPersister
         foreach ($this->_class->identifier as $idField) {
             if (isset($this->_class->associationMappings[$idField])) {
                 $targetMapping = $this->_em->getClassMetadata($this->_class->associationMappings[$idField]['targetEntity']);
-                $where[] = $this->_class->associationMappings[$idField]['joinColumns'][0]['name'];
+                //$where[] = $this->_class->associationMappings[$idField]['joinColumns'][0]['name'];
+                $where[] = $this->quoteStrategy->getJoinColumnName($this->_class->associationMappings[$idField]['joinColumns'][0], $this->_class, $this->_platform);
                 $params[] = $id[$idField];
 
                 switch (true) {
@@ -442,7 +443,7 @@ class BasicEntityPersister
 
         $sql = 'UPDATE ' . $quotedTableName
              . ' SET ' . implode(', ', $set)
-             . ' WHERE ' . implode(' = ? AND ', $where) . ' = ?';
+             . ' WHERE /*sfdsaf*/' . implode(' = ? AND ', $where) . ' = ?';
 
         $result = $this->_conn->executeUpdate($sql, $params, $types);
 
