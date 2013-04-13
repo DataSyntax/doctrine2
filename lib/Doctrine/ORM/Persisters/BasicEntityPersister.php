@@ -733,11 +733,21 @@ class BasicEntityPersister
                         $sourceClass->name, $sourceKeyColumn
                     );
                 }
+                
+                //find the corresponding joinColumn
+                foreach($owningAssoc['joinColumns'] as $column) {
+                    if ($column['name'] == $targetKeyColumn) {
+                        $joinColumn = $column;
+                        break;
+                    }
+                }
 
                 // unset the old value and set the new sql aliased value here. By definition
                 // unset($identifier[$targetKeyColumn] works here with how UnitOfWork::createEntity() calls this method.
-                $identifier[$this->_getSQLTableAlias($targetClass->name) . "." . $targetKeyColumn] =
-                    $sourceClass->reflFields[$sourceClass->fieldNames[$sourceKeyColumn]]->getValue($sourceEntity);
+                
+                $identifier[$this->_getSQLTableAlias($targetClass->name) . "." 
+                    . $this->quoteStrategy->getJoinColumnName($joinColumn, $targetClass, $this->_platform)
+                    ] =  $sourceClass->reflFields[$sourceClass->fieldNames[$sourceKeyColumn]]->getValue($sourceEntity);
 
                 unset($identifier[$targetKeyColumn]);
             }
@@ -1042,7 +1052,7 @@ class BasicEntityPersister
              . $this->_platform->appendLockHint(' FROM ' . $this->quoteStrategy->getTableName($this->_class, $this->_platform) . ' '
              . $alias, $lockMode)
              . $this->_selectJoinSql . $joinSql
-             . ($conditionSql ? ' WHERE ' . $conditionSql : '')
+             . ($conditionSql ? ' WHERE /* gjhgjghjh */' . $conditionSql : '')
              . $orderBySql, $limit, $offset)
              . $lockSql;
     }
@@ -1218,7 +1228,7 @@ class BasicEntityPersister
                 $columnList[]     = $this->_getSQLTableAlias($class->name, ($alias == 'r' ? '' : $alias) )
                                     . '.' . $quotedColumn . ' AS ' . $resultColumnName;
 
-                $this->_rsm->addMetaResult($alias, $resultColumnName, $quotedColumn, isset($assoc['id']) && $assoc['id'] === true);
+                $this->_rsm->addMetaResult($alias, $resultColumnName, $joinColumn['name'], isset($assoc['id']) && $assoc['id'] === true);
             }
         }
 
@@ -1492,7 +1502,10 @@ class BasicEntityPersister
                     ? $this->_class->associationMappings[$field]['inherited']
                     : $this->_class->name;
 
-                return $this->_getSQLTableAlias($className) . '.' . $this->_class->associationMappings[$field]['joinColumns'][0]['name'];
+                return $this->_getSQLTableAlias($className) . '.' . $this->quoteStrategy->getJoinColumnName(
+                        $this->_class->associationMappings[$field]['joinColumns'][0], 
+                        $this->_class, 
+                        $this->_platform);
 
             case ($assoc !== null && strpos($field, " ") === false && strpos($field, "(") === false):
                 // very careless developers could potentially open up this normally hidden api for userland attacks,
