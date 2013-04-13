@@ -1160,7 +1160,7 @@ class BasicEntityPersister
 
                 if ($assoc['isOwningSide']) {
                     $this->_selectJoinSql .= ' ' . $this->getJoinSQLForJoinColumns($assoc['joinColumns']);
-                    $this->_selectJoinSql .= ' ' . $this->quoteStrategy->getTableName($eagerEntity, $this->_platform) . ' ' . $this->_getSQLTableAlias($eagerEntity->name, $assocAlias) .' ON ';
+                    $this->_selectJoinSql .= ' ' . $this->quoteStrategy->getTableName($eagerEntity, $this->_platform) . ' ' . $this->_getSQLTableAlias($eagerEntity->name, $assocAlias) .' ON /*gdgfdg*/';
 
                     $tableAlias = $this->_getSQLTableAlias($assoc['targetEntity'], $assocAlias);
                     foreach ($assoc['joinColumns'] as $joinColumn) {
@@ -1185,15 +1185,28 @@ class BasicEntityPersister
 
                     $this->_selectJoinSql .= ' LEFT JOIN';
                     $this->_selectJoinSql .= ' ' . $this->quoteStrategy->getTableName($eagerEntity, $this->_platform) . ' '
-                                           . $this->_getSQLTableAlias($eagerEntity->name, $assocAlias) . ' ON ';
+                                           . $this->_getSQLTableAlias($eagerEntity->name, $assocAlias) . ' ON /* blablabla */';
 
-                    foreach ($owningAssoc['sourceToTargetKeyColumns'] as $sourceCol => $targetCol) {
+                   /* foreach ($owningAssoc['sourceToTargetKeyColumns'] as $sourceCol => $targetCol) {
                         if ( ! $first) {
                             $this->_selectJoinSql .= ' AND ';
                         }
 
                         $this->_selectJoinSql .= $this->_getSQLTableAlias($owningAssoc['sourceEntity'], $assocAlias) . '.' . $sourceCol . ' = '
                                                . $this->_getSQLTableAlias($owningAssoc['targetEntity']) . '.' . $targetCol;
+                        $first = false;
+                    }*/
+                    
+                    foreach ($owningAssoc['joinColumns'] as $joinColumn) {
+                        $sourceCol = $this->quoteStrategy->getJoinColumnName($joinColumn, $this->_class, $this->_platform);
+                        $targetCol = $this->quoteStrategy->getReferencedJoinColumnName($joinColumn, $this->_class, $this->_platform);
+                        
+                        if ( ! $first) {
+                            $this->_selectJoinSql .= ' AND ';
+                        }
+                    
+                        $this->_selectJoinSql .= $this->_getSQLTableAlias($owningAssoc['sourceEntity'], $assocAlias) . '.' . $sourceCol . ' = '
+                        . $this->_getSQLTableAlias($owningAssoc['targetEntity']) . '.' . $targetCol;
                         $first = false;
                     }
                 }
