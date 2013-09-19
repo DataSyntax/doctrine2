@@ -1605,6 +1605,7 @@ class BasicEntityPersister
         $tableAlias = $this->_getSQLTableAlias(isset($owningAssoc['inherited']) ? $owningAssoc['inherited'] : $this->_class->name);
 
         foreach ($owningAssoc['targetToSourceKeyColumns'] as $sourceKeyColumn => $targetKeyColumn) {
+            $targetKeyColumn = $this->quoteStrategy->getJoinColumnName($owningAssoc['joinColumns'][0], $sourceClass, $this->_platform);
             if ($sourceClass->containsForeignIdentifier) {
                 $field = $sourceClass->getFieldForColumn($sourceKeyColumn);
                 $value = $sourceClass->reflFields[$field]->getValue($sourceEntity);
