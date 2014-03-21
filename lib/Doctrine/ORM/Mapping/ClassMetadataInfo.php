@@ -2300,10 +2300,11 @@ class ClassMetadataInfo implements ClassMetadata
         $sourceFieldName = $assocMapping['fieldName'];
 
         if (isset($this->fieldMappings[$sourceFieldName]) || isset($this->associationMappings[$sourceFieldName])) {
-            throw MappingException::duplicateFieldMapping($this->name, $sourceFieldName);
+            //throw MappingException::duplicateFieldMapping($this->name, $sourceFieldName);
+            //do nothing
+        } else {
+            $this->associationMappings[$sourceFieldName] = $assocMapping;
         }
-
-        $this->associationMappings[$sourceFieldName] = $assocMapping;
     }
 
     /**
