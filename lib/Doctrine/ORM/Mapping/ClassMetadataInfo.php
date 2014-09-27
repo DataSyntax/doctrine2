@@ -1791,7 +1791,9 @@ class ClassMetadataInfo implements ClassMetadata
      */
     public function getTypeOfColumn($columnName, $em = null)
     {
-
+if($columnName == "OpdrachtgeverID") {
+    $a = 1;
+}
         if( isset($this->fieldNames[$columnName]) || !$em) {
             //if we have the column in field mappings getting type is straightforward
             $fieldName = $this->fieldNames[$columnName];
@@ -1800,6 +1802,8 @@ class ClassMetadataInfo implements ClassMetadata
         } else {
             //else getting field type gets a little complicated
             foreach($this->associationMappings as $assoc) {
+                if(!$assoc["isOwningSide"])
+                    continue;
                 foreach ($assoc['joinColumns'] as $joinColumn) {
                     if($joinColumn['name'] == $columnName) {
                         $targetEntity = $em->getClassMetadata($assoc['targetEntity']);
@@ -1808,6 +1812,7 @@ class ClassMetadataInfo implements ClassMetadata
                             $targetEntity->fieldMappings[$targetField]['type'] : null;
                     }
                 }
+                
             }
         }
     }
