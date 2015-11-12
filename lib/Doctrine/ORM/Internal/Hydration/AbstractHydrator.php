@@ -222,7 +222,11 @@ abstract class AbstractHydrator
                         // Meta column (has meaning in relational schema only, i.e. foreign keys or discriminator columns).
                         $fieldName     = $this->_rsm->metaMappings[$key];
                         $classMetadata = $this->_em->getClassMetadata($this->_rsm->aliasMap[$this->_rsm->columnOwnerMap[$key]]);
-                        $cache[$key]['type'] = Type::getType($classMetadata->getTypeOfColumn($fieldName, $this->_em));
+                        if ($fieldName == "discr") {
+                            $cache[$key]['type'] = Type::getType("string");
+                        } else {
+                            $cache[$key]['type'] = Type::getType($classMetadata->getTypeOfColumn($fieldName, $this->_em));
+                        }
                         $cache[$key]['isMetaColumn'] = true;
                         $cache[$key]['fieldName']    = $fieldName;
                         $cache[$key]['dqlAlias']     = $this->_rsm->columnOwnerMap[$key];
