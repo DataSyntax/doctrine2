@@ -65,9 +65,13 @@ class SimpleObjectHydrator extends AbstractHydrator
     {
         $result = array();
 
-        while ($row = $this->_stmt->fetch(PDO::FETCH_ASSOC)) {
+        $rows = $this->_stmt->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($rows as $row) {
             $this->hydrateRowData($row, $result);
         }
+//        while ($row = $this->_stmt->fetch(PDO::FETCH_ASSOC)) {
+//            $this->hydrateRowData($row, $result);
+//        }
 
         $this->_em->getUnitOfWork()->triggerEagerLoads();
 

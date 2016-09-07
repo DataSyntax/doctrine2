@@ -83,9 +83,13 @@ class ArrayHydrator extends AbstractHydrator
     {
         $result = array();
 
-        while ($data = $this->_stmt->fetch(PDO::FETCH_ASSOC)) {
+        $dataRows = $this->_stmt->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($dataRows as $data) {
             $this->hydrateRowData($data, $result);
         }
+//        while ($data = $this->_stmt->fetch(PDO::FETCH_ASSOC)) {
+//            $this->hydrateRowData($data, $result);
+//        }
 
         return $result;
     }

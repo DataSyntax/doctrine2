@@ -37,9 +37,13 @@ class ScalarHydrator extends AbstractHydrator
     {
         $result = array();
 
-        while ($data = $this->_stmt->fetch(\PDO::FETCH_ASSOC)) {
-            $this->hydrateRowData($data, $result);
+        $rows = $this->_stmt->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($rows as $row) {
+            $this->hydrateRowData($row, $result);
         }
+//        while ($data = $this->_stmt->fetch(\PDO::FETCH_ASSOC)) {
+//            $this->hydrateRowData($data, $result);
+//        }
 
         return $result;
     }
